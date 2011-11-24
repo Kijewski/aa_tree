@@ -7,7 +7,7 @@
 
 #define STR_FREE(S) ({ free (*(char**)S); })
 #define STR_CMP(A,B) strcmp (*A, *B)
-AA_TREE (stringTree, const char*, STR_CMP, STR_FREE, malloc, free, AA_NOP)
+AA_TREE (stringTree, const char*, STR_CMP, STR_FREE, malloc, free, assert)
 
 int main ()
 {
