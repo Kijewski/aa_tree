@@ -5,9 +5,9 @@
 #include <string.h>
 #include <assert.h>
 
-#define STR_FREE(S) ({ free (*(char**)S); })
+#define STR_FREE(S) free (*S)
 #define STR_CMP(A,B) strcmp (*A, *B)
-AA_TREE (stringTree, const char*, STR_CMP, STR_FREE, malloc, free, assert)
+AA_TREE (stringTree, char*, STR_CMP, STR_FREE, malloc, free, assert)
 
 int main ()
 {
@@ -21,8 +21,8 @@ int main ()
       if (len < 0)
         break;
         
-      const char *string = strndup (lineptr, len - (lineptr[len-1] < 32));
-      const char **new_item = &string;
+      char *string = strndup (lineptr, len - (lineptr[len-1] < 32));
+      char **new_item = &string;
       
       switch (stringTreeInsert (tree, &new_item))
         {
@@ -30,6 +30,7 @@ int main ()
           break;
         case AAIR_EXISTS:
           fprintf (stdout, "“%.*s” already exists.\n", (int) len, string);
+          free (string);
           break;
         case AAIR_MEMORY_EXHAUSTED:
           fprintf (stdout, "Your memory seems to be exhausted.\n");

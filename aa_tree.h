@@ -54,7 +54,7 @@ typedef struct aa_tree_##NAME##_ NAME;                                        \
 /*                                                                         */ \
 /*                       PUBLIC INTERFACE FUNCTIONS:                       */ \
 /*                                                                         */ \
-/*     / *********************************************************** \    */ \
+/*     / *********************************************************** \     */ \
 /*     */                                                           /*     */ \
 /*     */     static inline NAME *                                  /*     */ \
 /*     */     NAME##New (void);                                     /*     */ \
@@ -339,6 +339,6 @@ NAME##Clear (struct aa_tree_##NAME##_ *tree,                                  \
   (void) 0;                                                                   \
 })
 
-extern struct aa_node_ AA_NIL_;
+extern const struct aa_node_ AA_NIL_;
 
 #endif /* ifndef AA_TREE_H__ */

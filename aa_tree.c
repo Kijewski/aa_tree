@@ -1,6 +1,9 @@
 #include "aa_tree.h"
 
-struct aa_node_ AA_NIL_ = { 0, &AA_NIL_, &AA_NIL_ };
+const struct aa_node_ AA_NIL_ = { 0,
+                                  (struct aa_node_ *) &AA_NIL_,
+                                  (struct aa_node_ *) &AA_NIL_
+                                };
 
 static struct aa_node_ *
 skew (struct aa_node_ *t)
