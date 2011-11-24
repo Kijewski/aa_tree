@@ -1,0 +1,16 @@
+*~
+*.~*
+.*
+!.gitignore
+
+*.bak
+*.log
+*.tmp
+
+*.o
+*.so
+*.d
+*.out
+
+*.nfs*
+*.swp*
