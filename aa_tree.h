@@ -33,6 +33,8 @@ aa_removed_ (struct aa_node_ *t);
 
 #define AA_NOP(X) ({ (void)0; })
 
+#define AA_IS_NIL_(N) ((N) == (__typeof (N)) &AA_NIL_)
+
 #define AA_CMP_FROM_LESS(TYPE, CMP)                                           \
 (const __typeof(TYPE) *A, const __typeof(TYPE) *B)                            \
 {                                                                             \
@@ -116,7 +118,7 @@ NAME##Free##_ (void *ptr)                                                     \
 static inline void                                                            \
 NAME##FreeDatum##_ (struct aa_node_##NAME##_ *node)                           \
 {                                                                             \
-  ASSERT (node != NULL && node != (__typeof (node)) &AA_NIL_);                \
+  ASSERT (node != NULL && !AA_IS_NIL_ (node));                                \
   FREE_DATUM ( (&node->datum) );                                              \
 }                                                                             \
                                                                               \
@@ -172,7 +174,7 @@ NAME##Insert##_ (aa_type_##NAME##_        **datum,                            \
                  enum aa_insert_result     *result)                           \
 {                                                                             \
   struct aa_node_##NAME##_ *t;                                                \
-  if (node == (__typeof(node)) &AA_NIL_)                                      \
+  if (AA_IS_NIL_ (node))                                                      \
     {                                                                         \
       t = NAME##NewNode_ (*datum);                                            \
       if (t)                                                                  \
@@ -235,7 +237,7 @@ NAME##Find (struct aa_tree_##NAME##_ *tree,                                   \
   ASSERT (datum != NULL);                                                     \
                                                                               \
   struct aa_node_##NAME##_ *node;                                             \
-  for (node = tree->root; node != (__typeof(node)) &AA_NIL_;)                 \
+  for (node = tree->root; !AA_IS_NIL_ (node); )                               \
     {                                                                         \
       int cmp_result = NAME##Cmp_ (datum, &node->datum);                      \
       if (cmp_result < 0)                                                     \
@@ -254,7 +256,7 @@ NAME##Remove##_ (aa_type_##NAME##_         *datum,                            \
                  struct aa_node_##NAME##_ **deleted,                          \
                  struct aa_node_##NAME##_ **last)                             \
 {                                                                             \
-  if (node == (__typeof(node)) &AA_NIL_)                                      \
+  if (AA_IS_NIL_ (node))                                                      \
     return false;                                                             \
                                                                               \
   *last = node;                                                               \
@@ -280,8 +282,9 @@ static inline void                                                            \
 NAME##Clear##_ (struct aa_node_##NAME##_ *node,                               \
                 bool                      free_items)                         \
 {                                                                             \
-  if (node == (__typeof (node)) &AA_NIL_)                                     \
+  if (AA_IS_NIL_ (node))                                                      \
     return;                                                                   \
+                                                                              \
   NAME##Clear##_ (node->left, free_items);                                    \
   NAME##Clear##_ (node->right, free_items);                                   \
   if (free_items)                                                             \
@@ -312,8 +315,9 @@ NAME##Clear (struct aa_tree_##NAME##_ *tree,                                  \
   inline void                                                                 \
   _fold_fun (_node_type node, _accu_type *accu)                               \
   {                                                                           \
-    if (node == (_node_type) &AA_NIL_)                                        \
+    if (AA_IS_NIL_ (node))                                                    \
       return;                                                                 \
+                                                                              \
     _fold_fun (node->left, accu);                                             \
     *accu = FUN (&node->datum, *accu);                                        \
     _fold_fun (node->right, accu);                                            \
