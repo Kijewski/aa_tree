@@ -48,41 +48,40 @@ aa_removed_ (struct aa_node_ *t);
 struct aa_node_##NAME##_;                                                     \
 struct aa_tree_##NAME##_;                                                     \
 typedef __typeof(TYPE) aa_type_##NAME##_;                                     \
+typedef struct aa_tree_##NAME##_ NAME;                                        \
                                                                               \
 /* *********************************************************************** */ \
 /*                                                                         */ \
 /*                       PUBLIC INTERFACE FUNCTIONS:                       */ \
 /*                                                                         */ \
-/* *********************************************************************** */ \
-/* */                                                                   /* */ \
-/* */ typedef struct aa_tree_##NAME##_ NAME;                            /* */ \
-/* */                                                                   /* */ \
-/* */ static inline NAME *                                              /* */ \
-/* */ NAME##New (void);                                                 /* */ \
-/* */                                                                   /* */ \
-/* */ static inline void                                                /* */ \
-/* */ NAME##Free (NAME *tree);                                          /* */ \
-/* */                                                                   /* */ \
-/* */ static inline void                                                /* */ \
-/* */ NAME##Init (NAME *dest);                                          /* */ \
-/* */                                                                   /* */ \
-/* */ static inline void                                                /* */ \
-/* */ NAME##Clear (NAME *tree,                                          /* */ \
-/* */              bool  free_items);                                   /* */ \
-/* */                                                                   /* */ \
-/* */ static inline enum aa_insert_result                               /* */ \
-/* */ NAME##Insert (NAME               *tree,                           /* */ \
-/* */               aa_type_##NAME##_ **datum);                         /* */ \
-/* */                                                                   /* */ \
-/* */ static inline aa_type_##NAME##_ *                                 /* */ \
-/* */ NAME##Find (NAME              *tree,                              /* */ \
-/* */             aa_type_##NAME##_ *datum);                            /* */ \
-/* */                                                                   /* */ \
-/* */ static inline bool                                                /* */ \
-/* */ NAME##Remove (NAME              *tree,                            /* */ \
-/* */               aa_type_##NAME##_ *datum);                          /* */ \
-/* */                                                                   /* */ \
-/* *********************************************************************** */ \
+/*     / *********************************************************** \    */ \
+/*     */                                                           /*     */ \
+/*     */     static inline NAME *                                  /*     */ \
+/*     */     NAME##New (void);                                     /*     */ \
+/*     */                                                           /*     */ \
+/*     */     static inline void                                    /*     */ \
+/*     */     NAME##Free (NAME *tree);                              /*     */ \
+/*     */                                                           /*     */ \
+/*     */     static inline void                                    /*     */ \
+/*     */     NAME##Init (NAME *dest);                              /*     */ \
+/*     */                                                           /*     */ \
+/*     */     static inline void                                    /*     */ \
+/*     */     NAME##Clear (NAME *tree,                              /*     */ \
+/*     */                  bool  free_items);                       /*     */ \
+/*     */                                                           /*     */ \
+/*     */     static inline enum aa_insert_result                   /*     */ \
+/*     */     NAME##Insert (NAME  *tree,                            /*     */ \
+/*     */                   TYPE **datum);                          /*     */ \
+/*     */                                                           /*     */ \
+/*     */     static inline TYPE *                                  /*     */ \
+/*     */     NAME##Find (NAME *tree,                               /*     */ \
+/*     */                 TYPE *datum);                             /*     */ \
+/*     */                                                           /*     */ \
+/*     */     static inline bool                                    /*     */ \
+/*     */     NAME##Remove (NAME *tree,                             /*     */ \
+/*     */                   TYPE *datum);                           /*     */ \
+/*     */                                                           /*     */ \
+/*     \ *********************************************************** /     */ \
 /*                                                                         */ \
 /*                    "HIDDEN" IMPLEMENTATION INTERNALS:                   */ \
 /*                                                                         */ \
