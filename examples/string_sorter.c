@@ -37,7 +37,8 @@ int main (void)
   #define STR_FUN(S) fprintf (stdout, "Contains: “%s”.\n", *S)
   AA_FOR_EACH (stringTree, STR_FUN, tree);
   
-  fprintf (stdout, "\nSize = %u.\nDepth = %u.\n", aa_size (tree), aa_depth (tree));
+  fprintf (stdout, "\nSize = %zu.\nDepth = %zu.\n", aa_size (tree),
+                                                    aa_depth (tree));
   
   stringTreeFree (tree);
   return 0;

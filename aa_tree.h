@@ -14,8 +14,8 @@ enum aa_insert_result
 };
 
 #define aa_nop(X) ({ (void)0; })
-#define aa_depth(T) (aa_depth_ ((const struct aa_tree_ *) (T)))
-#define aa_size(T) (aa_size_ ((const struct aa_tree_ *) (T)))
+#define aa_depth(T) (aa_depth_ (AA_TREE_PTR_ (const struct aa_tree_ *, T)))
+#define aa_size(T) (aa_size_ (AA_TREE_PTR_ (const struct aa_tree_ *, T)))
 
 #define AA_CMP_FROM_LESS(TYPE, CMP)                                           \
 (const __typeof(TYPE) *A, const __typeof(TYPE) *B)                            \
@@ -387,6 +387,38 @@ struct aa_tree_
   struct aa_node_ *root;
 };
 
+#define AA_ENSURE_(X) ({                                                      \
+  typedef char _STATIC_CODE_ANALYSIS_FAILED[0-!(X)];                          \
+  (void) 0;                                                                   \
+})
+#define AA_ENSURE_FIELD_(DT, ST, FIELD)                                       \
+({                                                                            \
+  typedef __typeof(DT) _dt;                                                   \
+  typedef __typeof(ST) _st;                                                   \
+  AA_ENSURE_ (sizeof (((_dt *) 0)->FIELD) == sizeof (((_st *) 0)->FIELD));    \
+  AA_ENSURE_ ((void *) &((_dt *) 0)->FIELD == (void *) &((_st *) 0)->FIELD);  \
+  (void) 0;                                                                   \
+})
+#define AA_ENSURE_NODE_PTR_(N)                                                \
+({                                                                            \
+  typedef __typeof(struct aa_node_) _dt;                                      \
+  typedef __typeof(*(__typeof(N)) 0)  _st;                                    \
+  AA_ENSURE_ (sizeof (_dt) == sizeof (_st) - sizeof (((_st *) 0)->datum));    \
+  AA_ENSURE_FIELD_(_dt, _st, left);                                           \
+  AA_ENSURE_FIELD_(_dt, _st, right);                                          \
+  AA_ENSURE_FIELD_(_dt, _st, level);                                          \
+  (void) 0;                                                                   \
+})
+#define AA_TREE_PTR_(DEST, SRC)                                               \
+({                                                                            \
+  typedef __typeof(*(__typeof(DEST)) 0) _dt;                                  \
+  typedef __typeof(*(__typeof(SRC)) 0)  _st;                                  \
+  AA_ENSURE_ (sizeof (_dt) == sizeof (_st));                                  \
+  AA_ENSURE_FIELD_ (_dt, _st, root);                                          \
+  AA_ENSURE_NODE_PTR_ (((_st *) 0)->root);                                    \
+  (_dt *) (SRC);                                                              \
+})
+
 extern struct aa_node_ *
 aa_inserted_ (struct aa_node_ *t);
 
@@ -396,11 +428,11 @@ aa_removed_ (struct aa_node_ *t);
 extern size_t
 aa_depth_ (const struct aa_tree_ *tree);
 
-#define AA_IS_NIL_(N) ((N) == (__typeof (N)) &AA_NIL_)
-
 extern size_t
 aa_size_ (const struct aa_tree_ *tree);
 
 extern const  struct aa_node_ AA_NIL_;
+
+#define AA_IS_NIL_(N) ((N) == (__typeof (N)) &AA_NIL_)
 
 #endif /* ifndef AA_TREE_H__ */
