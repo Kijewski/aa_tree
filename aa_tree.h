@@ -220,7 +220,7 @@ NAME##Insert2 (struct aa_tree_##NAME##_  *tree,                               \
   memset (&data, 0, sizeof (data));                                           \
   data.datum = *datum;                                                        \
   struct aa_node_##NAME##_ *t = NULL;                                         \
-  if (!setjmp (data.bail_out))                                                \
+  if (!sigsetjmp (data.bail_out, 0))                                          \
     t = NAME##Insert##_ (tree->root, &data);                                  \
   if (t)                                                                      \
     tree->root = t;                                                           \
@@ -323,7 +323,7 @@ NAME##Remove (struct aa_tree_##NAME##_ *tree,                                 \
   memset (&data, 0, sizeof (data));                                           \
   data.datum = datum;                                                         \
   data.free_item = free_item;                                                 \
-  if (!setjmp (data.bail_out))                                                \
+  if (!sigsetjmp (data.bail_out, 0))                                          \
     tree->root = NAME##Remove##_ (tree->root, &data);                         \
   return data.deletee != NULL;                                                \
 }                                                                             \
