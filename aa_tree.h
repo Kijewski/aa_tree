@@ -5,6 +5,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
+#include <setjmp.h>
 
 enum aa_insert_result
 {
@@ -249,6 +250,7 @@ struct NAME##Remove##_data_                                                   \
   aa_type_##NAME##_         *datum;                                           \
   struct aa_node_##NAME##_  *deletee;                                         \
   bool                       free_item;                                       \
+  jmp_buf                    bail_out;                                        \
 };                                                                            \
                                                                               \
 static inline struct aa_node_##NAME##_ *                                      \
@@ -270,7 +272,6 @@ NAME##Remove##_ (struct aa_node_##NAME##_    *t,                              \
     }                                                                         \
   else                                                                        \
     {                                                                         \
-      /* go down to the bottom, finding leftmost t  */                        \
       is_bottom = AA_IS_NIL_ (t->right);                                      \
       if (!is_bottom)                                                         \
         t->right = NAME##Remove##_ (t->right, data);                          \
@@ -288,6 +289,8 @@ NAME##Remove##_ (struct aa_node_##NAME##_    *t,                              \
       NAME##Free##_ (t);                                                      \
       return result;                                                          \
     }                                                                         \
+  else if (is_bottom && !data->deletee)                                       \
+    longjmp (data->bail_out, 1);                                              \
   else if (data->deletee)                                                     \
     return (struct aa_node_##NAME##_*) aa_removed_ ((struct aa_node_ *) t);   \
   else                                                                        \
@@ -305,8 +308,12 @@ NAME##Remove (struct aa_tree_##NAME##_ *tree,                                 \
   if (!tree->root || AA_IS_NIL_ (tree->root))                                 \
     return false;                                                             \
                                                                               \
-  struct NAME##Remove##_data_ data = { datum, NULL, free_item };              \
-  tree->root = NAME##Remove##_ (tree->root, &data);                           \
+  struct NAME##Remove##_data_ data;                                           \
+  memset (&data, 0, sizeof (data));                                           \
+  data.datum = datum;                                                         \
+  data.free_item = free_item;                                                 \
+  if (!setjmp (data.bail_out))                                                \
+    tree->root = NAME##Remove##_ (tree->root, &data);                         \
   return data.deletee != NULL;                                                \
 }                                                                             \
                                                                               \
