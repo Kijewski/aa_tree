@@ -156,44 +156,50 @@ NAME##NewNode_ (aa_type_##NAME##_ *datum)                                     \
   return result;                                                              \
 }                                                                             \
                                                                               \
+struct NAME##Insert##_data_                                                   \
+{                                                                             \
+  aa_type_##NAME##_     *datum;                                               \
+  enum aa_insert_result  result;                                              \
+  jmp_buf                bail_out;                                            \
+};                                                                            \
+                                                                              \
 static inline struct aa_node_##NAME##_ *                                      \
-NAME##Insert##_ (aa_type_##NAME##_        **datum,                            \
-                 struct aa_node_##NAME##_  *node,                             \
-                 enum aa_insert_result     *result)                           \
+NAME##Insert##_ (struct aa_node_##NAME##_    *node,                           \
+                 struct NAME##Insert##_data_ *data)                           \
 {                                                                             \
   struct aa_node_##NAME##_ *t;                                                \
   if (AA_IS_NIL_ (node))                                                      \
     {                                                                         \
-      t = NAME##NewNode_ (*datum);                                            \
+      t = NAME##NewNode_ (data->datum);                                       \
       if (t)                                                                  \
         {                                                                     \
-          *result = AAIR_INSERTED;                                            \
-          *datum = &t->datum;                                                 \
+          data->result = AAIR_INSERTED;                                       \
+          data->datum = &t->datum;                                            \
           return t;                                                           \
         }                                                                     \
-      *result = AAIR_MEMORY_EXHAUSTED;                                        \
-      return NULL;                                                            \
+      data->result = AAIR_MEMORY_EXHAUSTED;                                   \
+      longjmp (data->bail_out, 1);                                            \
     }                                                                         \
                                                                               \
-  int cmp_result = NAME##Cmp_ (*datum, &node->datum);                         \
+  int cmp_result = NAME##Cmp_ (data->datum, &node->datum);                    \
   if (cmp_result < 0)                                                         \
     {                                                                         \
-      t = NAME##Insert##_ (datum, node->left, result);                        \
+      t = NAME##Insert##_ (node->left, data);                                 \
       if (!t)                                                                 \
         return NULL;                                                          \
       node->left = t;                                                         \
     }                                                                         \
   else if (cmp_result > 0)                                                    \
     {                                                                         \
-      t = NAME##Insert##_ (datum, node->right, result);                       \
+      t = NAME##Insert##_ (node->right, data);                                \
       if (!t)                                                                 \
         return NULL;                                                          \
       node->right = t;                                                        \
     }                                                                         \
   else                                                                        \
     {                                                                         \
-      *result = AAIR_EXISTS;                                                  \
-      *datum = &node->datum;                                                  \
+      data->result = AAIR_EXISTS;                                             \
+      data->datum = &node->datum;                                             \
       return NULL;                                                            \
     }                                                                         \
                                                                               \
@@ -210,11 +216,16 @@ NAME##Insert2 (struct aa_tree_##NAME##_  *tree,                               \
   if (!tree->root)                                                            \
     NAME##Init (tree);                                                        \
                                                                               \
-  enum aa_insert_result result = -1;                                          \
-  struct aa_node_##NAME##_ *t = NAME##Insert##_ (datum, tree->root, &result); \
-  if (result == AAIR_INSERTED)                                                \
+  struct NAME##Insert##_data_ data;                                           \
+  memset (&data, 0, sizeof (data));                                           \
+  data.datum = *datum;                                                        \
+  struct aa_node_##NAME##_ *t = NULL;                                         \
+  if (!setjmp (data.bail_out))                                                \
+    t = NAME##Insert##_ (tree->root, &data);                                  \
+  if (t)                                                                      \
     tree->root = t;                                                           \
-  return result;                                                              \
+  *datum = data.datum;                                                        \
+  return data.result;                                                         \
 }                                                                             \
                                                                               \
 static inline bool                                                            \
