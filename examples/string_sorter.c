@@ -9,7 +9,7 @@
 #define STR_CMP(A,B) strcmp (*A, *B)
 AA_TREE (stringTree, char*, STR_CMP, STR_FREE, malloc, free, assert)
 
-int main ()
+int main (void)
 {
   stringTree *tree = stringTreeNew ();
   
@@ -36,6 +36,8 @@ int main ()
   
   #define STR_FUN(S) fprintf (stdout, "Contains: “%s”.\n", *S)
   AA_FOR_EACH (stringTree, STR_FUN, tree);
+  
+  fprintf (stdout, "\nSize = %u.\nDepth = %u.\n", aa_size (tree), aa_depth (tree));
   
   stringTreeFree (tree);
   return 0;

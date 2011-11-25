@@ -1,11 +1,14 @@
 #include "aa_tree.h"
 
-struct aa_node_ AA_NIL_ = { 0, &AA_NIL_, &AA_NIL_ };
+const struct aa_node_ AA_NIL_ = { (struct aa_node_ *) &AA_NIL_,
+                                  (struct aa_node_ *) &AA_NIL_,
+                                  0
+                                };
 
 static struct aa_node_ *
 skew (struct aa_node_ *t)
 {
-  if (t->left->level != t->level)
+  if (AA_IS_NIL_ (t) || t->left->level != t->level)
     return t;
   struct aa_node_ *l = t->left;
   t->left = l->right;
@@ -16,7 +19,7 @@ skew (struct aa_node_ *t)
 static struct aa_node_ *
 split (struct aa_node_ *t)
 {
-  if (t->level != t->right->right->level)
+  if (AA_IS_NIL_ (t) || t->level != t->right->right->level)
     return t;
   struct aa_node_ *r = t->right;
   t->right = r->left;
@@ -49,4 +52,44 @@ aa_removed_ (struct aa_node_ *t)
   t = split (t);
   t->right = split (t->right);
   return t;
+}
+
+static void
+aa_depth_sub (const struct aa_node_ *t, size_t *max, size_t cur)
+{
+  if (AA_IS_NIL_ (t))
+    {
+      if (cur > *max)
+        *max = cur;
+      return;
+    }
+  aa_depth_sub (t->left,  max, cur+1);
+  aa_depth_sub (t->right, max, cur+1);
+}
+
+size_t
+aa_depth_ (const struct aa_tree_ *tree)
+{
+  if (!tree->root)
+    return 0;
+  size_t result = 0;
+  aa_depth_sub (tree->root, &result, 0);
+  return result;
+}
+
+static size_t
+aa_size_sub (const struct aa_node_ *t, size_t cur)
+{
+  if (AA_IS_NIL_ (t))
+    return cur;
+  cur = aa_size_sub (t->left, cur+1);
+  return aa_size_sub (t->right, cur);
+}
+
+size_t
+aa_size_ (const struct aa_tree_ *tree)
+{
+  if (!tree->root)
+    return 0;
+  return aa_size_sub (tree->root, 0);
 }

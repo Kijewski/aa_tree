@@ -6,18 +6,6 @@
 #include <string.h>
 #include <stdlib.h>
 
-struct aa_node_
-{
-  uint32_t         level;
-  struct aa_node_ *left;
-  struct aa_node_ *right;
-};
-
-struct aa_tree_
-{
-  struct aa_node_ *root;
-};
-
 enum aa_insert_result
 {
   AAIR_INSERTED,
@@ -25,15 +13,9 @@ enum aa_insert_result
   AAIR_MEMORY_EXHAUSTED
 };
 
-extern struct aa_node_ *
-aa_inserted_ (struct aa_node_ *t);
-
-extern struct aa_node_ *
-aa_removed_ (struct aa_node_ *t);
-
-#define AA_NOP(X) ({ (void)0; })
-
-#define AA_IS_NIL_(N) ((N) == (__typeof (N)) &AA_NIL_)
+#define aa_nop(X) ({ (void)0; })
+#define aa_depth(T) (aa_depth_ ((const struct aa_tree_ *) (T)))
+#define aa_size(T) (aa_size_ ((const struct aa_tree_ *) (T)))
 
 #define AA_CMP_FROM_LESS(TYPE, CMP)                                           \
 (const __typeof(TYPE) *A, const __typeof(TYPE) *B)                            \
@@ -96,9 +78,9 @@ typedef struct aa_tree_##NAME##_ NAME;                                        \
                                                                               \
 struct aa_node_##NAME##_                                                      \
 {                                                                             \
-  uint32_t                  level;                                            \
   struct aa_node_##NAME##_ *left;                                             \
   struct aa_node_##NAME##_ *right;                                            \
+  uint32_t                  level;                                            \
   aa_type_##NAME##_         datum;                                            \
 };                                                                            \
                                                                               \
@@ -167,7 +149,6 @@ NAME##NewNode_ (aa_type_##NAME##_ *datum)                                     \
   struct aa_node_##NAME##_ *result = NAME##Malloc##_ (sizeof (*result));      \
   if (!result)                                                                \
     return NULL;                                                              \
-  memset (result, 0, sizeof (*result));                                       \
   result->level = 1;                                                          \
   result->left = result->right = (__typeof (result)) &AA_NIL_;                \
   result->datum = *datum;                                                     \
@@ -394,6 +375,32 @@ NAME##Clear (struct aa_tree_##NAME##_ *tree,                                  \
   (void) 0;                                                                   \
 })
 
-extern  struct aa_node_ AA_NIL_;
+struct aa_node_
+{
+  struct aa_node_ *left;
+  struct aa_node_ *right;
+  uint32_t         level;
+};
+
+struct aa_tree_
+{
+  struct aa_node_ *root;
+};
+
+extern struct aa_node_ *
+aa_inserted_ (struct aa_node_ *t);
+
+extern struct aa_node_ *
+aa_removed_ (struct aa_node_ *t);
+
+extern size_t
+aa_depth_ (const struct aa_tree_ *tree);
+
+#define AA_IS_NIL_(N) ((N) == (__typeof (N)) &AA_NIL_)
+
+extern size_t
+aa_size_ (const struct aa_tree_ *tree);
+
+extern const  struct aa_node_ AA_NIL_;
 
 #endif /* ifndef AA_TREE_H__ */
