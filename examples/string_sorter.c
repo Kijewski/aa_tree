@@ -18,28 +18,23 @@ int main ()
   for (;;)
     {
       ssize_t len = getline (&lineptr, &n, stdin);
-      if (len < 0)
+      if (len == 1)
+        continue;
+      else if (len <= 0)
         break;
+      lineptr[len-1] = '\0';
         
-      char *string = strndup (lineptr, len - (lineptr[len-1] < 32));
-      char **new_item = &string;
-      
-      switch (stringTreeInsert (tree, &new_item))
+      char *string = strdup (lineptr);
+      if (!stringTreeInsert (tree, &string))
         {
-        case AAIR_INSERTED:
-          break;
-        case AAIR_EXISTS:
-          fprintf (stdout, "“%.*s” already exists.\n", (int) len, string);
+          fprintf (stdout, "Deleting: “%.*s”.\n", (int) len, string);
+          stringTreeRemove (tree, &string, true);
           free (string);
-          break;
-        case AAIR_MEMORY_EXHAUSTED:
-          fprintf (stdout, "Your memory seems to be exhausted.\n");
-          break;
         }
     }
   free (lineptr);
   
-  #define STR_FUN(S) fprintf (stdout, "%s\n", *S)
+  #define STR_FUN(S) fprintf (stdout, "Contains: “%s”.\n", *S)
   AA_FOR_EACH (stringTree, STR_FUN, tree);
   
   stringTreeFree (tree);

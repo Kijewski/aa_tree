@@ -71,9 +71,13 @@ typedef struct aa_tree_##NAME##_ NAME;                                        \
 /*     */     NAME##Clear (NAME *tree,                              /*     */ \
 /*     */                  bool  free_items);                       /*     */ \
 /*     */                                                           /*     */ \
+/*     */     static inline bool                                    /*     */ \
+/*     */     NAME##Insert (NAME *tree,                             /*     */ \
+/*     */                   TYPE *datum);                           /*     */ \
+/*     */                                                           /*     */ \
 /*     */     static inline enum aa_insert_result                   /*     */ \
-/*     */     NAME##Insert (NAME  *tree,                            /*     */ \
-/*     */                   TYPE **datum);                          /*     */ \
+/*     */     NAME##Insert2 (NAME  *tree,                           /*     */ \
+/*     */                    TYPE **datum);                         /*     */ \
 /*     */                                                           /*     */ \
 /*     */     static inline TYPE *                                  /*     */ \
 /*     */     NAME##Find (NAME *tree,                               /*     */ \
@@ -81,7 +85,8 @@ typedef struct aa_tree_##NAME##_ NAME;                                        \
 /*     */                                                           /*     */ \
 /*     */     static inline bool                                    /*     */ \
 /*     */     NAME##Remove (NAME *tree,                             /*     */ \
-/*     */                   TYPE *datum);                           /*     */ \
+/*     */                   TYPE *datum,                            /*     */ \
+/*     */                   bool  free_item);                       /*     */ \
 /*     */                                                           /*     */ \
 /*     \ *********************************************************** /     */ \
 /*                                                                         */ \
@@ -116,15 +121,16 @@ NAME##Free##_ (void *ptr)                                                     \
 }                                                                             \
                                                                               \
 static inline void                                                            \
-NAME##FreeDatum##_ (struct aa_node_##NAME##_ *node)                           \
+NAME##FreeDatum##_ (aa_type_##NAME##_ *datum)                                 \
 {                                                                             \
-  ASSERT (node != NULL && !AA_IS_NIL_ (node));                                \
-  FREE_DATUM ( (&node->datum) );                                              \
+  FREE_DATUM (datum);                                                         \
 }                                                                             \
                                                                               \
 static inline int                                                             \
 NAME##Cmp_ (const aa_type_##NAME##_ *left, const aa_type_##NAME##_ *right)    \
 {                                                                             \
+  if (left == right)                                                          \
+    return 0;                                                                 \
   return CMP (left, right);                                                   \
 }                                                                             \
                                                                               \
@@ -152,7 +158,7 @@ NAME##Free (NAME *tree)                                                       \
   if (tree == NULL)                                                           \
     return;                                                                   \
   NAME##Clear (tree, true);                                                   \
-  FREE (tree);                                                                \
+  NAME##Free##_ (tree);                                                       \
 }                                                                             \
                                                                               \
 static inline struct aa_node_##NAME##_ *                                      \
@@ -213,8 +219,8 @@ NAME##Insert##_ (aa_type_##NAME##_        **datum,                            \
 }                                                                             \
                                                                               \
 static inline enum aa_insert_result                                           \
-NAME##Insert (struct aa_tree_##NAME##_  *tree,                                \
-              aa_type_##NAME##_        **datum)                               \
+NAME##Insert2 (struct aa_tree_##NAME##_  *tree,                               \
+               aa_type_##NAME##_        **datum)                              \
 {                                                                             \
   ASSERT (tree != NULL);                                                      \
   ASSERT (datum != NULL && *datum != NULL);                                   \
@@ -227,6 +233,13 @@ NAME##Insert (struct aa_tree_##NAME##_  *tree,                                \
   if (result == AAIR_INSERTED)                                                \
     tree->root = t;                                                           \
   return result;                                                              \
+}                                                                             \
+                                                                              \
+static inline bool                                                            \
+NAME##Insert (struct aa_tree_##NAME##_ *tree,                                 \
+              aa_type_##NAME##_        *datum)                                \
+{                                                                             \
+  return NAME##Insert2 (tree, &datum) == AAIR_INSERTED;                       \
 }                                                                             \
                                                                               \
 static inline aa_type_##NAME##_ *                                             \
@@ -250,32 +263,70 @@ NAME##Find (struct aa_tree_##NAME##_ *tree,                                   \
   return NULL;                                                                \
 }                                                                             \
                                                                               \
-static inline bool                                                            \
-NAME##Remove##_ (aa_type_##NAME##_         *datum,                            \
-                 struct aa_node_##NAME##_  *node,                             \
-                 struct aa_node_##NAME##_ **deleted,                          \
-                 struct aa_node_##NAME##_ **last)                             \
+struct NAME##Remove##_data_                                                   \
 {                                                                             \
-  if (AA_IS_NIL_ (node))                                                      \
-    return false;                                                             \
+  aa_type_##NAME##_         *datum;                                           \
+  struct aa_node_##NAME##_  *deletee;                                         \
+  bool                       free_item;                                       \
+};                                                                            \
                                                                               \
-  *last = node;                                                               \
-  if (NAME##Cmp_ (datum, &node->datum) > 0)                                   \
+static inline struct aa_node_##NAME##_ *                                      \
+NAME##Remove##_ (struct aa_node_##NAME##_    *t,                              \
+                 struct NAME##Remove##_data_ *data)                           \
+{                                                                             \
+  ASSERT (!AA_IS_NIL_ (t));                                                   \
+                                                                              \
+  int cmp_result = !data->deletee ? NAME##Cmp_ (data->datum, &t->datum) : -1; \
+  if (cmp_result == 0)                                                        \
+    data->deletee = t;                                                        \
+                                                                              \
+  bool is_bottom;                                                             \
+  if (cmp_result < 0)                                                         \
     {                                                                         \
-      (void) deleted; /* TODO; */                                             \
+      is_bottom = AA_IS_NIL_ (t->left);                                       \
+      if (!is_bottom)                                                         \
+        t->left = NAME##Remove##_ (t->left, data);                            \
     }                                                                         \
-  return false;                                                               \
+  else                                                                        \
+    {                                                                         \
+      /* go down to the bottom, finding leftmost t  */                        \
+      is_bottom = AA_IS_NIL_ (t->right);                                      \
+      if (!is_bottom)                                                         \
+        t->right = NAME##Remove##_ (t->right, data);                          \
+    }                                                                         \
+                                                                              \
+  if (is_bottom && data->deletee)                                             \
+    {                                                                         \
+      ASSERT (AA_IS_NIL_ (t->left));                                          \
+                                                                              \
+      if (data->free_item)                                                    \
+        NAME##FreeDatum##_ (&data->deletee->datum);                           \
+      data->deletee->datum = t->datum;                                        \
+                                                                              \
+      struct aa_node_##NAME##_ *result = t->right;                            \
+      NAME##Free##_ (t);                                                      \
+      return result;                                                          \
+    }                                                                         \
+  else if (data->deletee)                                                     \
+    return (struct aa_node_##NAME##_*) aa_removed_ ((struct aa_node_ *) t);   \
+  else                                                                        \
+    return t;                                                                 \
 }                                                                             \
                                                                               \
 static inline bool                                                            \
 NAME##Remove (struct aa_tree_##NAME##_ *tree,                                 \
-              aa_type_##NAME##_        *datum)                                \
+              aa_type_##NAME##_        *datum,                                \
+              bool                      free_item)                            \
 {                                                                             \
   ASSERT (tree != NULL);                                                      \
   ASSERT (datum != NULL);                                                     \
                                                                               \
-  struct aa_node_##NAME##_ *deleted = NULL, *last = NULL;                     \
-  return NAME##Remove##_ (datum, tree->root, &deleted, &last);                \
+  if (!tree->root || AA_IS_NIL_ (tree->root))                                 \
+    return false;                                                             \
+                                                                              \
+  struct NAME##Remove##_data_ data = { datum, NULL, free_item };              \
+  tree->root = NAME##Remove##_ (tree->root, &data);                           \
+  return data.deletee != NULL;                                                \
 }                                                                             \
                                                                               \
 static inline void                                                            \
@@ -286,9 +337,9 @@ NAME##Clear##_ (struct aa_node_##NAME##_ *node,                               \
     return;                                                                   \
                                                                               \
   NAME##Clear##_ (node->left, free_items);                                    \
-  NAME##Clear##_ (node->right, free_items);                                   \
   if (free_items)                                                             \
-    NAME##FreeDatum##_ (node);                                                \
+    NAME##FreeDatum##_ (&node->datum);                                        \
+  NAME##Clear##_ (node->right, free_items);                                   \
   NAME##Free##_ (node);                                                       \
 }                                                                             \
                                                                               \
@@ -343,6 +394,6 @@ NAME##Clear (struct aa_tree_##NAME##_ *tree,                                  \
   (void) 0;                                                                   \
 })
 
-extern const struct aa_node_ AA_NIL_;
+extern  struct aa_node_ AA_NIL_;
 
 #endif /* ifndef AA_TREE_H__ */
