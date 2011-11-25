@@ -5,7 +5,6 @@
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
-#include <setjmp.h>
 
 enum aa_insert_result
 {
@@ -160,7 +159,6 @@ struct NAME##Insert##_data_                                                   \
 {                                                                             \
   aa_type_##NAME##_     *datum;                                               \
   enum aa_insert_result  result;                                              \
-  jmp_buf                bail_out;                                            \
 };                                                                            \
                                                                               \
 static inline struct aa_node_##NAME##_ *                                      \
@@ -178,7 +176,7 @@ NAME##Insert##_ (struct aa_node_##NAME##_    *node,                           \
           return t;                                                           \
         }                                                                     \
       data->result = AAIR_MEMORY_EXHAUSTED;                                   \
-      longjmp (data->bail_out, 1);                                            \
+      return NULL;                                                            \
     }                                                                         \
                                                                               \
   int cmp_result = NAME##Cmp_ (data->datum, &node->datum);                    \
@@ -219,9 +217,7 @@ NAME##Insert2 (struct aa_tree_##NAME##_  *tree,                               \
   struct NAME##Insert##_data_ data;                                           \
   memset (&data, 0, sizeof (data));                                           \
   data.datum = *datum;                                                        \
-  struct aa_node_##NAME##_ *t = NULL;                                         \
-  if (!sigsetjmp (data.bail_out, 0))                                          \
-    t = NAME##Insert##_ (tree->root, &data);                                  \
+  struct aa_node_##NAME##_ *t = NAME##Insert##_ (tree->root, &data);          \
   if (t)                                                                      \
     tree->root = t;                                                           \
   *datum = data.datum;                                                        \
@@ -261,7 +257,6 @@ struct NAME##Remove##_data_                                                   \
   aa_type_##NAME##_         *datum;                                           \
   struct aa_node_##NAME##_  *deletee;                                         \
   bool                       free_item;                                       \
-  jmp_buf                    bail_out;                                        \
 };                                                                            \
                                                                               \
 static inline struct aa_node_##NAME##_ *                                      \
@@ -300,9 +295,7 @@ NAME##Remove##_ (struct aa_node_##NAME##_    *t,                              \
       NAME##Free##_ (t);                                                      \
       return result;                                                          \
     }                                                                         \
-  else if (is_bottom && !data->deletee)                                       \
-    longjmp (data->bail_out, 1);                                              \
-  else if (data->deletee)                                                     \
+  else if (!is_bottom && data->deletee)                                                     \
     return (struct aa_node_##NAME##_*) aa_removed_ ((struct aa_node_ *) t);   \
   else                                                                        \
     return t;                                                                 \
@@ -323,8 +316,7 @@ NAME##Remove (struct aa_tree_##NAME##_ *tree,                                 \
   memset (&data, 0, sizeof (data));                                           \
   data.datum = datum;                                                         \
   data.free_item = free_item;                                                 \
-  if (!sigsetjmp (data.bail_out, 0))                                          \
-    tree->root = NAME##Remove##_ (tree->root, &data);                         \
+  tree->root = NAME##Remove##_ (tree->root, &data);                           \
   return data.deletee != NULL;                                                \
 }                                                                             \
                                                                               \
