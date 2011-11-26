@@ -37,8 +37,22 @@ aa_inserted_ (struct aa_node_ *t)
 }
 
 struct aa_node_ *
-aa_removed_ (struct aa_node_ *t)
+aa_removed_ (struct aa_node_ *t, struct aa_node_ *deletee, bool is_bottom)
 {
+  if (is_bottom && deletee)
+    {
+      // ASSERT (AA_IS_NIL_ (t->left));
+      struct aa_node_ *result = t->right;
+      t->left = deletee->left;
+      t->right = deletee->right;
+      t->level = deletee->level;
+      deletee = t;
+      return result;
+    }
+    
+  if (is_bottom || !deletee)
+    return t;
+    
   if (t->left ->level >= t->level -1 &&
       t->right->level >= t->level -1)
     return t;

@@ -305,6 +305,7 @@ NAME##Remove##_ (struct aa_node_##NAME##_    *t,                              \
               ASSERT (data->deletee != t);                                    \
               ASSERT (!AA_IS_NIL_ (data->deletee));                           \
                                                                               \
+              NAME##Free##_ (t);                                              \
               t = data->deletee;                                              \
               data->deletee = (__typeof (t)) &AA_NIL_;                        \
             }                                                                 \
@@ -312,21 +313,9 @@ NAME##Remove##_ (struct aa_node_##NAME##_    *t,                              \
         }                                                                     \
     }                                                                         \
                                                                               \
-  if (is_bottom && data->deletee)                                             \
-    {                                                                         \
-      ASSERT (AA_IS_NIL_ (t->left));                                          \
-      struct aa_node_##NAME##_ *result = t->right;                            \
-      t->left = data->deletee->left;                                          \
-      t->right = data->deletee->right;                                        \
-      t->level = data->deletee->level;                                        \
-      NAME##Free##_ (data->deletee);                                          \
-      data->deletee = t;                                                      \
-      return result;                                                          \
-    }                                                                         \
-  else if (!is_bottom && data->deletee)                                       \
-    return (struct aa_node_##NAME##_*) aa_removed_ ((struct aa_node_ *) t);   \
-  else                                                                        \
-    return t;                                                                 \
+  return (__typeof (t)) aa_removed_ ((struct aa_node_ *) t,                   \
+                                     (struct aa_node_ *) data->deletee,       \
+                                     is_bottom);                              \
 }                                                                             \
                                                                               \
 static inline bool                                                            \
@@ -461,7 +450,7 @@ extern struct aa_node_ *
 aa_inserted_ (struct aa_node_ *t);
 
 extern struct aa_node_ *
-aa_removed_ (struct aa_node_ *t);
+aa_removed_ (struct aa_node_ *t, struct aa_node_ *deletee, bool is_bottom);
 
 extern size_t
 aa_depth_ (const struct aa_tree_ *tree);
