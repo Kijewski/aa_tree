@@ -17,6 +17,12 @@ enum aa_insert_result
 #define aa_depth(T) (aa_depth_ (AA_TREE_PTR_ (const struct aa_tree_ *, T)))
 #define aa_size(T) (aa_size_ (AA_TREE_PTR_ (const struct aa_tree_ *, T)))
 
+#define aa_is_empty(T)                                                        \
+({                                                                            \
+  const struct aa_tree_ *_t = AA_TREE_PTR_ (const struct aa_tree_ *, T);      \
+  _t->root == NULL || AA_IS_NIL_ (_t->root);                                  \
+})
+
 #define AA_CMP_FROM_LESS(TYPE, CMP)                                           \
 (const __typeof(TYPE) *A, const __typeof(TYPE) *B)                            \
 {                                                                             \
@@ -267,7 +273,18 @@ NAME##Remove##_ (struct aa_node_##NAME##_    *t,                              \
                                                                               \
   int cmp_result = !data->deletee ? NAME##Cmp_ (data->datum, &t->datum) : -1; \
   if (cmp_result == 0)                                                        \
-    data->deletee = t;                                                        \
+    {                                                                         \
+      if (data->free_item)                                                    \
+        NAME##FreeDatum##_ (&t->datum);                                       \
+      if (AA_IS_NIL_ (t->right))                                              \
+        {                                                                     \
+          struct aa_node_##NAME##_ *result = t->left;                         \
+          NAME##Free##_ (t);                                                  \
+          data->deletee = (__typeof (t)) &AA_NIL_;                            \
+          return result;                                                      \
+        }                                                                     \
+      data->deletee = t;                                                      \
+    }                                                                         \
                                                                               \
   bool is_bottom;                                                             \
   if (cmp_result < 0)                                                         \
@@ -280,22 +297,33 @@ NAME##Remove##_ (struct aa_node_##NAME##_    *t,                              \
     {                                                                         \
       is_bottom = AA_IS_NIL_ (t->right);                                      \
       if (!is_bottom)                                                         \
-        t->right = NAME##Remove##_ (t->right, data);                          \
+        {                                                                     \
+          struct aa_node_##NAME##_ *v = NAME##Remove##_ (t->right, data);     \
+          if (cmp_result == 0)                                                \
+            {                                                                 \
+              ASSERT (data->deletee != NULL);                                 \
+              ASSERT (data->deletee != t);                                    \
+              ASSERT (!AA_IS_NIL_ (data->deletee));                           \
+                                                                              \
+              t = data->deletee;                                              \
+              data->deletee = (__typeof (t)) &AA_NIL_;                        \
+            }                                                                 \
+          t->right = v;                                                       \
+        }                                                                     \
     }                                                                         \
                                                                               \
   if (is_bottom && data->deletee)                                             \
     {                                                                         \
       ASSERT (AA_IS_NIL_ (t->left));                                          \
-                                                                              \
-      if (data->free_item)                                                    \
-        NAME##FreeDatum##_ (&data->deletee->datum);                           \
-      data->deletee->datum = t->datum;                                        \
-                                                                              \
       struct aa_node_##NAME##_ *result = t->right;                            \
-      NAME##Free##_ (t);                                                      \
+      t->left = data->deletee->left;                                          \
+      t->right = data->deletee->right;                                        \
+      t->level = data->deletee->level;                                        \
+      NAME##Free##_ (data->deletee);                                          \
+      data->deletee = t;                                                      \
       return result;                                                          \
     }                                                                         \
-  else if (!is_bottom && data->deletee)                                                     \
+  else if (!is_bottom && data->deletee)                                       \
     return (struct aa_node_##NAME##_*) aa_removed_ ((struct aa_node_ *) t);   \
   else                                                                        \
     return t;                                                                 \
