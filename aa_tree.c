@@ -1,3 +1,8 @@
+/*
+ * AUTHOR:  2011  René Kijewski  (rene.<surname>@fu-berlin.de)
+ * LICENSE: MIT
+ */
+
 #include "aa_tree.h"
 
 const struct aa_node_ AA_NIL_ = { (struct aa_node_ *) &AA_NIL_,
