@@ -1,5 +1,5 @@
 /*
- * AUTHOR:  2011  René Kijewski  (rene.<surname>@fu-berlin.de)
+ * AUTHOR:  2011, 2012  René Kijewski  (rene.<surname>@fu-berlin.de)
  * LICENSE: MIT
  */
 

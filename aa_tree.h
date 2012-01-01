@@ -1,5 +1,5 @@
 /*
- * AUTHOR:  2011  René Kijewski  (rene.<surname>@fu-berlin.de)
+ * AUTHOR:  2011, 2012  René Kijewski  (rene.<surname>@fu-berlin.de)
  * LICENSE: MIT
  */
 
@@ -38,7 +38,7 @@ enum aa_insert_result
   return 0;                                                                   \
 }
 
-#define AA_TREE(NAME, TYPE, CMP, FREE_DATUM, MALLOC, FREE, ASSERT)            \
+#define AA_TREE(NAME, TYPE, CMP, FREE_DATUM, REALLOC, ASSERT)                 \
                                                                               \
 struct aa_node_##NAME##_;                                                     \
 struct aa_tree_##NAME##_;                                                     \
@@ -101,16 +101,23 @@ struct aa_tree_##NAME##_                                                      \
 };                                                                            \
                                                                               \
 static inline void * __attribute__ ((malloc))                                 \
+NAME##Realloc##_ (void *ptr, size_t size)                                     \
+{                                                                             \
+  return REALLOC (ptr, size);                                                 \
+}                                                                             \
+                                                                              \
+static inline void * __attribute__ ((malloc))                                 \
 NAME##Malloc##_ (size_t size)                                                 \
 {                                                                             \
-  return MALLOC (size);                                                       \
+  ASSERT (size > 0);                                                          \
+  return NAME##Realloc##_ (NULL, size);                                       \
 }                                                                             \
                                                                               \
 static inline void                                                            \
 NAME##Free##_ (void *ptr)                                                     \
 {                                                                             \
   ASSERT (ptr != NULL);                                                       \
-  FREE (ptr);                                                                 \
+  NAME##Realloc##_ (ptr, 0);                                                  \
 }                                                                             \
                                                                               \
 static inline void                                                            \
@@ -436,9 +443,9 @@ struct aa_tree_
   typedef __typeof(struct aa_node_) _dt;                                      \
   typedef __typeof(*(__typeof(N)) 0)  _st;                                    \
   AA_ENSURE_ (sizeof (_dt) == sizeof (_st) - sizeof (((_st *) 0)->datum));    \
-  AA_ENSURE_FIELD_(_dt, _st, left);                                           \
-  AA_ENSURE_FIELD_(_dt, _st, right);                                          \
-  AA_ENSURE_FIELD_(_dt, _st, level);                                          \
+  AA_ENSURE_FIELD_ (_dt, _st, left);                                          \
+  AA_ENSURE_FIELD_ (_dt, _st, right);                                         \
+  AA_ENSURE_FIELD_ (_dt, _st, level);                                         \
   (void) 0;                                                                   \
 })
 #define AA_TREE_PTR_(DEST, SRC)                                               \
@@ -463,7 +470,7 @@ aa_depth_ (const struct aa_tree_ *tree);
 extern size_t
 aa_size_ (const struct aa_tree_ *tree);
 
-extern const  struct aa_node_ AA_NIL_;
+extern const struct aa_node_ AA_NIL_;
 
 #define AA_IS_NIL_(N) ((N) == (__typeof (N)) &AA_NIL_)
 
